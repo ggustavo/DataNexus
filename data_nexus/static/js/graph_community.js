@@ -1,8 +1,9 @@
 // based on https://observablehq.com/@d3/clustered-bubbles
 
 function render_graph_community(graph, container_id, width, height) {
+    const maxVal = d3.max(graph.nodes, d => d.size) || 1;
     const sizeScale = d3.scaleLog()
-        .domain([1, d3.max(graph.nodes, d => d.size)]) // Começando de 1 em vez de 0
+        .domain([1, Math.max(2, maxVal)]) // Começando de 1 em vez de 0
         .range([5, 50]); // Define o intervalo para o tamanho dos nós
 
     function transformGraph(graph) {

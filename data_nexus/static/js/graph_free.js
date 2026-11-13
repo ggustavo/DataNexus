@@ -1,8 +1,9 @@
 function render_graph_free(graph, container_id, width, height) {
     width = width * 3
     height = height * 3
+    const maxVal = d3.max(graph.nodes, d => d.size) || 1;
     const sizeScale = d3.scaleLog()
-    .domain([1, d3.max(graph.nodes, d => d.size)]) // Começando de 1 em vez de 0
+    .domain([1, Math.max(2, maxVal)]) // Começando de 1 em vez de 0
     .range([5, 50]); // Define o intervalo para o tamanho dos nós
 
     const svg = d3.select(container_id)

@@ -97,7 +97,15 @@
         
         <div class="menu_content">
 
-            <button id="new_connection_button">New Connection</button>
+            <div class="connection_buttons_header">
+                <button id="new_connection_button" title="Create New Connection">New Connection</button>
+                <button id="config_connection_button" class="config_connection_button" title="Configurar Relacionamentos da Conexão" aria-label="Configurações de Relacionamentos">
+                    <svg class="config_icon_svg" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="3"></circle>
+                        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+                    </svg>
+                </button>
+            </div>
 
             <div class="menu_sub_content">
                 <div id="connections_container"></div>
@@ -266,6 +274,68 @@
   
     
 
+    </div>
+
+    <!-- Modal Relationship Configuration -->
+    <div class="modal_overlay" id="modal_overlay_relationships">
+        <div class="modal modal_relationships">
+
+            <button class="close_button" id="close_relationships_modal_button">&times;</button>
+          
+            <div class="modal_rel_header">
+                <div class="modal_rel_title_group">
+                    <h2 class="modal_rel_title">Configurações de Relacionamentos</h2>
+                    <div id="modal_rel_subtitle" class="modal_rel_subtitle">Conexão selecionada</div>
+                </div>
+                <div id="modal_rel_cache_badge" class="cache_badge">
+                    <span class="cache_dot">●</span> Cache: <span id="modal_rel_cache_name">Carregado</span>
+                </div>
+            </div>
+
+            <div class="modal_rel_body">
+                <!-- Master Inference Toggle Card -->
+                <div class="rel_master_card">
+                    <div class="rel_master_toggle_row">
+                        <label class="rel_switch">
+                            <input type="checkbox" id="rel_infer_toggle">
+                            <span class="rel_slider round"></span>
+                        </label>
+                        <div class="rel_master_text">
+                            <span class="rel_master_title">Gerar relacionamentos por colunas com mesmo nome</span>
+                            <span class="rel_master_desc">Analisa o cache local do banco e conecta tabelas que possuem nomes de colunas idênticos (ideal para bancos sem FK declaradas).</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Candidates Section -->
+                <div id="rel_candidates_container" class="rel_candidates_container">
+                    <div class="rel_toolbar">
+                        <div class="rel_toolbar_left">
+                            <span class="rel_section_label">Colunas Candidatas</span>
+                            <span id="rel_candidates_count_badge" class="rel_count_badge">0 colunas</span>
+                        </div>
+                        <div class="rel_toolbar_right">
+                            <button type="button" id="rel_btn_enable_all" class="rel_btn_action">Ativar Todas</button>
+                            <button type="button" id="rel_btn_disable_all" class="rel_btn_action">Desativar Todas</button>
+                            <button type="button" id="rel_btn_disable_generic" class="rel_btn_action rel_btn_generic" title="Desmarca automaticamente colunas genéricas frequentes como id, name, data, etc.">Desmarcar Genéricas</button>
+                        </div>
+                    </div>
+
+                    <div class="rel_search_box">
+                        <input type="text" id="rel_search_input" class="rel_search_field" placeholder="Filtrar colunas (ex: id, name, product, customer)...">
+                    </div>
+
+                    <div id="rel_columns_list" class="rel_columns_list">
+                        <!-- Populated dynamically via JS -->
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal_rel_footer">
+                <button type="button" id="rel_btn_cancel" class="rel_btn_cancel">Cancelar</button>
+                <button type="button" id="rel_btn_save" class="rel_btn_save">Salvar e Aplicar</button>
+            </div>
+        </div>
     </div>
 
     <!-- D3 -->

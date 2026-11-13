@@ -145,3 +145,57 @@ function request_table_metadata(connection, name, call) {
     });
     
 }
+
+
+function request_relationship_config(connection_id, call) {
+    let ro = requestOptions();
+    ro.body = JSON.stringify({
+        "id": connection_id
+    });
+
+    fetch(URL + "/relationship_config", ro)
+    .then(response => response.text())
+    .then(result => {
+        if (result != null) {
+            result = JSON.parse(result);
+            if (result.error && !result.has_cache) {
+                showErrorModal(result.error);
+            } else if (result.error) {
+                showErrorModal(result.error);
+            } else {
+                call(result);
+            }
+        }
+    })
+    .catch(error => {
+        console.log('Error:', error);
+        showErrorModal(error);
+    });
+}
+
+
+function request_save_relationship_config(connection_id, enabled, column_settings, call) {
+    let ro = requestOptions();
+    ro.body = JSON.stringify({
+        "id": connection_id,
+        "enabled": enabled,
+        "column_settings": column_settings
+    });
+
+    fetch(URL + "/save_relationship_config", ro)
+    .then(response => response.text())
+    .then(result => {
+        if (result != null) {
+            result = JSON.parse(result);
+            if (result.error) {
+                showErrorModal(result.error);
+            } else {
+                call(result);
+            }
+        }
+    })
+    .catch(error => {
+        console.log('Error:', error);
+        showErrorModal(error);
+    });
+}

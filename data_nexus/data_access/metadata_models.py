@@ -85,12 +85,13 @@ class Column:
 
 
 class Constraint:
-    def __init__(self, name, column_name, referenced_table_schema, referenced_table_name, referenced_column_name):
+    def __init__(self, name, column_name, referenced_table_schema, referenced_table_name, referenced_column_name, is_inferred=False):
         self.name = name
         self.column_name = column_name
         self.referenced_table_schema = referenced_table_schema
         self.referenced_table_name = referenced_table_name
         self.referenced_column_name = referenced_column_name
+        self.is_inferred = is_inferred
     
     def to_dict(self):
         return {
@@ -98,7 +99,8 @@ class Constraint:
             'column_name': self.column_name,
             'referenced_table_schema': self.referenced_table_schema,
             'referenced_table_name': self.referenced_table_name,
-            'referenced_column_name': self.referenced_column_name
+            'referenced_column_name': self.referenced_column_name,
+            'is_inferred': self.is_inferred
         }
         
     @classmethod
@@ -106,9 +108,10 @@ class Constraint:
         return cls(
             name=data['name'],
             column_name=data['column_name'],
-            referenced_table_schema=data['referenced_table_schema'],
-            referenced_table_name=data['referenced_table_name'],
-            referenced_column_name=data['referenced_column_name']
+            referenced_table_schema=data.get('referenced_table_schema'),
+            referenced_table_name=data.get('referenced_table_name'),
+            referenced_column_name=data.get('referenced_column_name'),
+            is_inferred=data.get('is_inferred', False)
         )
 
 

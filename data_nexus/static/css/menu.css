@@ -35,23 +35,59 @@
     border: 1px solid white;
   }
   
-  #new_connection_button {
+  .connection_buttons_header {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
     margin-top: 15px;
     margin-bottom: 15px;
-    border: 2px solid black;
+    width: 90%;
+    align-self: center;
+  }
+
+  #new_connection_button {
     background: #003595;
     border: none;
     color: white;
-    font-size: 20px;
-    align-self: center;
-    width: 60%;
-    height: 5%;
+    font-size: 18px;
+    font-weight: 500;
+    flex: 1;
+    height: 44px;
     cursor: pointer;
     border-radius: 10px;
+    transition: background-color 0.2s;
   }
   
   #new_connection_button:hover {
     background: #103065;
+  }
+
+  .config_connection_button {
+    background: #003595;
+    border: none;
+    color: white;
+    width: 44px;
+    height: 44px;
+    cursor: pointer;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.2s, transform 0.15s;
+  }
+
+  .config_connection_button:hover {
+    background: #103065;
+    transform: rotate(30deg);
+  }
+
+  .config_connection_button:active {
+    transform: scale(0.95);
+  }
+
+  .config_icon_svg {
+    stroke: white;
   }
 
   #analyze_database {

@@ -141,6 +141,238 @@ function start(){
         document.getElementById('modal_overlay_connection').style.display = 'flex';
     });
 
+    // Relationship Modal Logic
+    let current_relationship_candidates = [];
+
+    function open_relationship_modal(connection) {
+        if (!connection) {
+            showErrorModal("Por favor, selecione uma conexão primeiro para configurar relacionamentos.");
+            return;
+        }
+
+        request_relationship_config(connection.id, function(configData) {
+            if (!configData.has_cache) {
+                showErrorModal(configData.error || "Cache JSON não encontrado para esta conexão. Você precisa analisar o banco de dados primeiro para gerar o cache local.");
+                return;
+            }
+
+            // Set subtitles and badges
+            const dbText = connection.database + (connection.schema ? "." + connection.schema : "") + ` (${connection.host}:${connection.port})`;
+            document.getElementById('modal_rel_subtitle').textContent = dbText;
+            document.getElementById('modal_rel_cache_name').textContent = `${connection.id}.json`;
+
+            // Set master inference toggle
+            const inferToggle = document.getElementById('rel_infer_toggle');
+            inferToggle.checked = Boolean(configData.enabled);
+
+            // Store candidate list
+            current_relationship_candidates = configData.candidates || [];
+            document.getElementById('rel_search_input').value = "";
+            
+            render_candidate_columns(current_relationship_candidates);
+
+            // Open modal
+            document.getElementById('modal_overlay_relationships').style.display = 'flex';
+        });
+    }
+
+    function render_candidate_columns(candidates) {
+        const listContainer = document.getElementById('rel_columns_list');
+        listContainer.innerHTML = '';
+
+        const filterText = (document.getElementById('rel_search_input').value || "").trim().toLowerCase();
+        let visibleCount = 0;
+
+        candidates.forEach(cand => {
+            const matchesName = cand.name.toLowerCase().includes(filterText);
+            const matchesTables = cand.tables.some(t => t.toLowerCase().includes(filterText));
+
+            if (filterText && !matchesName && !matchesTables) {
+                return;
+            }
+
+            visibleCount++;
+
+            const row = document.createElement('div');
+            row.className = 'candidate_row' + (cand.enabled ? '' : ' is_disabled');
+            row.setAttribute('data-col', cand.name);
+
+            const leftDiv = document.createElement('div');
+            leftDiv.className = 'candidate_left';
+
+            // Toggle Switch
+            const switchLabel = document.createElement('label');
+            switchLabel.className = 'rel_switch rel_switch_sm';
+
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.className = 'candidate_toggle';
+            checkbox.checked = Boolean(cand.enabled);
+            checkbox.dataset.col = cand.name;
+
+            checkbox.addEventListener('change', function() {
+                cand.enabled = this.checked;
+                if (this.checked) {
+                    row.classList.remove('is_disabled');
+                } else {
+                    row.classList.add('is_disabled');
+                }
+            });
+
+            const slider = document.createElement('span');
+            slider.className = 'rel_slider round';
+
+            switchLabel.appendChild(checkbox);
+            switchLabel.appendChild(slider);
+
+            // Info container
+            const infoDiv = document.createElement('div');
+            infoDiv.className = 'candidate_info';
+
+            const nameRow = document.createElement('div');
+            nameRow.className = 'candidate_name_row';
+
+            const colNameSpan = document.createElement('span');
+            colNameSpan.className = 'candidate_col_name';
+            colNameSpan.textContent = cand.name;
+
+            const countBadge = document.createElement('span');
+            countBadge.className = 'candidate_badge_count';
+            countBadge.textContent = `${cand.table_count} tabelas`;
+
+            nameRow.appendChild(colNameSpan);
+            nameRow.appendChild(countBadge);
+
+            if (cand.is_generic) {
+                const genericBadge = document.createElement('span');
+                genericBadge.className = 'candidate_badge_generic';
+                genericBadge.textContent = 'Genérica / Frequente';
+                nameRow.appendChild(genericBadge);
+            }
+
+            const tablesPreview = document.createElement('div');
+            tablesPreview.className = 'candidate_tables_preview';
+            tablesPreview.textContent = `Tabelas: ${cand.tables.join(', ')}`;
+            tablesPreview.title = cand.tables.join(', ');
+
+            infoDiv.appendChild(nameRow);
+            infoDiv.appendChild(tablesPreview);
+
+            leftDiv.appendChild(switchLabel);
+            leftDiv.appendChild(infoDiv);
+            row.appendChild(leftDiv);
+
+            listContainer.appendChild(row);
+        });
+
+        // Update count badge
+        document.getElementById('rel_candidates_count_badge').textContent = 
+            filterText ? `${visibleCount} de ${candidates.length} colunas` : `${candidates.length} colunas encontradas`;
+
+        if (visibleCount === 0) {
+            const emptyDiv = document.createElement('div');
+            emptyDiv.className = 'rel_empty_message';
+            emptyDiv.textContent = candidates.length === 0 
+                ? 'Nenhuma coluna compartilhada entre 2 ou mais tabelas foi encontrada no cache.' 
+                : 'Nenhuma coluna corresponde ao filtro de busca.';
+            listContainer.appendChild(emptyDiv);
+        }
+    }
+
+    // Config button click
+    const configButton = document.getElementById('config_connection_button');
+    if (configButton) {
+        configButton.addEventListener('click', function() {
+            open_relationship_modal(current_connection);
+        });
+    }
+
+    // Close relationship modal
+    const closeRelBtn = document.getElementById('close_relationships_modal_button');
+    if (closeRelBtn) {
+        closeRelBtn.addEventListener('click', function() {
+            document.getElementById('modal_overlay_relationships').style.display = 'none';
+        });
+    }
+
+    const cancelRelBtn = document.getElementById('rel_btn_cancel');
+    if (cancelRelBtn) {
+        cancelRelBtn.addEventListener('click', function() {
+            document.getElementById('modal_overlay_relationships').style.display = 'none';
+        });
+    }
+
+    // Close on click outside
+    const relOverlay = document.getElementById('modal_overlay_relationships');
+    if (relOverlay) {
+        relOverlay.addEventListener('click', function(event) {
+            if (event.target === this) {
+                this.style.display = 'none';
+            }
+        });
+    }
+
+    // Search filter
+    const relSearchInput = document.getElementById('rel_search_input');
+    if (relSearchInput) {
+        relSearchInput.addEventListener('input', function() {
+            render_candidate_columns(current_relationship_candidates);
+        });
+    }
+
+    // Quick Action: Enable All
+    const btnEnableAll = document.getElementById('rel_btn_enable_all');
+    if (btnEnableAll) {
+        btnEnableAll.addEventListener('click', function() {
+            current_relationship_candidates.forEach(c => c.enabled = true);
+            render_candidate_columns(current_relationship_candidates);
+        });
+    }
+
+    // Quick Action: Disable All
+    const btnDisableAll = document.getElementById('rel_btn_disable_all');
+    if (btnDisableAll) {
+        btnDisableAll.addEventListener('click', function() {
+            current_relationship_candidates.forEach(c => c.enabled = false);
+            render_candidate_columns(current_relationship_candidates);
+        });
+    }
+
+    // Quick Action: Disable Generic
+    const btnDisableGeneric = document.getElementById('rel_btn_disable_generic');
+    if (btnDisableGeneric) {
+        btnDisableGeneric.addEventListener('click', function() {
+            current_relationship_candidates.forEach(c => {
+                c.enabled = !c.is_generic;
+            });
+            render_candidate_columns(current_relationship_candidates);
+        });
+    }
+
+    // Save Settings
+    const btnSaveRel = document.getElementById('rel_btn_save');
+    if (btnSaveRel) {
+        btnSaveRel.addEventListener('click', function() {
+            if (!current_connection) return;
+
+            const enabled = document.getElementById('rel_infer_toggle').checked;
+            const column_settings = {};
+            current_relationship_candidates.forEach(c => {
+                column_settings[c.name] = Boolean(c.enabled);
+            });
+
+            btnSaveRel.disabled = true;
+            btnSaveRel.textContent = "Salvando...";
+
+            request_save_relationship_config(current_connection.id, enabled, column_settings, function(saveResult) {
+                btnSaveRel.disabled = false;
+                btnSaveRel.textContent = "Salvar e Aplicar";
+                document.getElementById('modal_overlay_relationships').style.display = 'none';
+                showErrorModal(saveResult.message || `Configurações salvas! ${saveResult.relationships_count} relacionamento(s) inferido(s).`);
+            });
+        });
+    }
+
     const callback_conn = function(connection) {
         let item = null;
         
@@ -161,6 +393,21 @@ function start(){
                 current_connection.item.classList.add("active");
                 
             });
+
+            // Edit icon click opens relationship config
+            const editIcon = item.querySelector('.edit_icon');
+            if (editIcon) {
+                editIcon.title = "Configurações de Relacionamentos";
+                editIcon.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    if (current_connection != null){
+                        current_connection.item.classList.remove("active");
+                    }
+                    current_connection = connection;
+                    current_connection.item.classList.add("active");
+                    open_relationship_modal(connection);
+                });
+            }
         }
         document.getElementById('modal_overlay_connection').style.display = 'none';
     };

@@ -1,3 +1,4 @@
+import os
 from data_nexus.log_handle.log import *
 from flask import Flask, render_template, request, jsonify
 from data_nexus.database_connections.mysql_connection import MySQLConnection
@@ -8,7 +9,15 @@ from data_nexus.data_access.postgresql_metadata_reader import postgres_fetch_tab
 from data_nexus.data_access.mysql_metadata_reader import mysql_fetch_tables
 from data_nexus.data_access.sqlserver_metadata_reader import sqlserver_fetch_tables
 from data_nexus.configuration_management.utils import unique_key
-from data_nexus.configuration_management.metadata import save_database_json_file, load_database_json_file, save_connections_json_file, load_connections_json_file
+from data_nexus.configuration_management.metadata import (
+    save_database_json_file, load_database_json_file,
+    save_connections_json_file, load_connections_json_file,
+    load_relationship_config_from_file
+)
+from data_nexus.configuration_management.relationship_inference import (
+    find_candidate_columns, apply_inferred_relationships,
+    clean_inferred_constraints, count_inferred_relationships
+)
 from data_nexus.graphs.graphs_processing import generate_graph
 
 use_memory_buffer = True
@@ -148,6 +157,131 @@ def get_metadadata():
 
 
 
+@app.route('/relationship_config', methods=['POST', 'OPTIONS'])
+def get_relationship_config():
+    global tables_buffer
+    global connections_buffer
+    try:
+        data = request.get_json()
+        if not data:
+            raise ValueError("No JSON data provided")
+
+        connection_id = data.get('id')
+        if not connection_id:
+            raise ValueError("Connection ID is required")
+
+        file_name = f'{connection_id}.json'
+        has_file = os.path.exists(file_name)
+        has_buffer = connection_id in tables_buffer
+
+        if not has_file and not has_buffer:
+            return jsonify({
+                'has_cache': False,
+                'error': 'Cache local (JSON) não encontrado para esta conexão. Você precisa analisar o banco de dados primeiro para carregar e salvar o cache local.'
+            }), 200
+
+        # Load tables from buffer or file
+        if has_buffer:
+            tables = tables_buffer[connection_id]
+        else:
+            tables = load_database_json_file(file_name)
+            if use_memory_buffer and tables:
+                tables_buffer.update({connection_id: tables})
+
+        if not tables:
+            return jsonify({
+                'has_cache': False,
+                'error': 'Não foi possível carregar as tabelas do cache.'
+            }), 200
+
+        # Load saved config
+        saved_config = load_relationship_config_from_file(file_name)
+        candidates = find_candidate_columns(tables, saved_config)
+
+        return jsonify({
+            'has_cache': True,
+            'id': connection_id,
+            'enabled': saved_config.get('enabled', False),
+            'candidates': candidates,
+            'total_tables': len(tables)
+        }), 200
+
+    except Exception as e:
+        log_error(f"Error in get_relationship_config: {e}")
+        return jsonify({'error': str(e)}), 400
+
+
+@app.route('/save_relationship_config', methods=['POST', 'OPTIONS'])
+def save_relationship_config():
+    global tables_buffer
+    global connections_buffer
+    try:
+        data = request.get_json()
+        if not data:
+            raise ValueError("No JSON data provided")
+
+        connection_id = data.get('id')
+        enabled = bool(data.get('enabled', False))
+        column_settings = data.get('column_settings', {})
+
+        if not connection_id:
+            raise ValueError("Connection ID is required")
+
+        file_name = f'{connection_id}.json'
+        has_file = os.path.exists(file_name)
+        has_buffer = connection_id in tables_buffer
+
+        if not has_file and not has_buffer:
+            return jsonify({
+                'has_cache': False,
+                'error': 'Cache local não encontrado para salvar configurações.'
+            }), 400
+
+        # Load tables
+        if has_buffer:
+            tables = tables_buffer[connection_id]
+        else:
+            tables = load_database_json_file(file_name)
+
+        if not tables:
+            return jsonify({'error': 'Tabelas não encontradas no cache.'}), 400
+
+        # Clean prior inferred constraints
+        clean_inferred_constraints(tables)
+
+        # Apply inferred relationships if enabled
+        if enabled:
+            enabled_columns = [col for col, is_on in column_settings.items() if is_on]
+            tables = apply_inferred_relationships(tables, enabled_columns)
+
+        rel_config = {
+            'enabled': enabled,
+            'column_settings': column_settings
+        }
+
+        # Update in-memory buffer
+        if use_memory_buffer:
+            tables_buffer.update({connection_id: tables})
+
+        # Save to file
+        if use_file_buffer or has_file:
+            save_database_json_file(tables, file_name, relationship_config=rel_config)
+
+        inferred_count = count_inferred_relationships(tables)
+
+        return jsonify({
+            'success': True,
+            'id': connection_id,
+            'enabled': enabled,
+            'relationships_count': inferred_count,
+            'message': f'Configurações salvas com sucesso! {inferred_count} relacionamento(s) inferido(s).'
+        }), 200
+
+    except Exception as e:
+        log_error(f"Error in save_relationship_config: {e}")
+        return jsonify({'error': str(e)}), 400
+
+
 @app.route('/validate_connection', methods=['POST', 'OPTIONS'])
 def validate_connection():
     global connections_buffer
@@ -226,6 +360,10 @@ def restore_tables(connection_id):
         tables = load_database_json_file(f'{connection_id}.json')
         if tables:
             log_info("Returning from file")
+            rel_config = load_relationship_config_from_file(f'{connection_id}.json')
+            if rel_config.get("enabled"):
+                enabled_cols = [k for k, v in rel_config.get("column_settings", {}).items() if v]
+                apply_inferred_relationships(tables, enabled_cols)
             if use_memory_buffer:
                 tables_buffer.update({connection_id : tables})
             return tables
