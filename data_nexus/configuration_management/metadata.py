@@ -4,6 +4,7 @@ from data_nexus.data_access.metadata_models import Table
 from data_nexus.configuration_management.db_credentials import DBCredentials
 from data_nexus.database_connections.mysql_connection import MySQLConnection
 from data_nexus.database_connections.postgresql_connection import PostgreSQLConnection
+from data_nexus.database_connections.sqlserver_connection import SQLServerConnection
 
 def save_database_json_file(tables, file_name):
     try:
@@ -80,5 +81,8 @@ def dict_list_to_connection_list(data):
         if record['type'] == 'PostgreSQLConnection':
             credentials = DBCredentials.from_dict(record['credentials'])
             connection = PostgreSQLConnection(credentials)
+        if record['type'] == 'SQLServerConnection':
+            credentials = DBCredentials.from_dict(record['credentials'])
+            connection = SQLServerConnection(credentials)
         connections.update({record['id'] : connection})
     return connections

@@ -13,6 +13,8 @@ load-dotenv = "^0.1.0"
 flask = "^2.1.0"
 networkx = "^3.3"
 python-louvain = "^0.16"
+pymssql = "^2.2.11"
+sqlalchemy = "^2.0.0"
 
 [build-system]
 requires = ["poetry-core"]

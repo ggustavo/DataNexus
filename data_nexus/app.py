@@ -2,9 +2,11 @@ from data_nexus.log_handle.log import *
 from flask import Flask, render_template, request, jsonify
 from data_nexus.database_connections.mysql_connection import MySQLConnection
 from data_nexus.database_connections.postgresql_connection import PostgreSQLConnection
+from data_nexus.database_connections.sqlserver_connection import SQLServerConnection
 from data_nexus.configuration_management.db_credentials import DBCredentials
 from data_nexus.data_access.postgresql_metadata_reader import postgres_fetch_tables
 from data_nexus.data_access.mysql_metadata_reader import mysql_fetch_tables
+from data_nexus.data_access.sqlserver_metadata_reader import sqlserver_fetch_tables
 from data_nexus.configuration_management.utils import unique_key
 from data_nexus.configuration_management.metadata import save_database_json_file, load_database_json_file, save_connections_json_file, load_connections_json_file
 from data_nexus.graphs.graphs_processing import generate_graph
@@ -49,6 +51,8 @@ def get_connections():
                 type = "mysql"
             if connection.__class__.__name__ == 'PostgreSQLConnection':
                 type = "postgresql"
+            if connection.__class__.__name__ == 'SQLServerConnection':
+                type = "sqlserver"
                 
             record = {
                 'id': id,
@@ -168,6 +172,16 @@ def validate_connection():
             connections_buffer.update({id : postgres_conn})
             save_connections_json_file(connections_buffer, connections_file)
             return jsonify({'id': id}), 200
+        elif dbms_name == 'sqlserver':
+            sqlserver_conn = SQLServerConnection(credentials)
+            sqlserver_conn.create()
+            if not sqlserver_conn.connection:
+                raise ValueError("SQLServer connection failed")
+            sqlserver_conn.close()
+            id = unique_key()
+            connections_buffer.update({id : sqlserver_conn})
+            save_connections_json_file(connections_buffer, connections_file)
+            return jsonify({'id': id}), 200
         else:
             raise ValueError("Invalid DBMS name")  
         return jsonify({'error': "connection failed"}), 200
@@ -210,6 +224,9 @@ def restore_tables(connection_id):
         
     if isinstance(connection, PostgreSQLConnection):
         tables = postgres_fetch_tables(connection) 
+
+    if isinstance(connection, SQLServerConnection):
+        tables = sqlserver_fetch_tables(connection) 
     
     connection.close()
     

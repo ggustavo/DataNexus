@@ -46,10 +46,12 @@ function validate_connection_mysql(callback) {
 }
 
 function validate_connection_sqlserver(callback) {
-    const host = document.getElementById("sqlserver_host").value.trim();;
-    const port = document.getElementById("sqlserver_port").value.trim();;
-    const database = document.getElementById("sqlserver_database").value.trim();;
-    const user = document.getElementById("sqlserver_user").value.trim();;
+    const host = document.getElementById("sqlserver_host").value.trim();
+    const port = document.getElementById("sqlserver_port").value.trim();
+    const database = document.getElementById("sqlserver_database").value.trim();
+    const schemaElem = document.getElementById("sqlserver_schema");
+    const schema = schemaElem && schemaElem.value.trim() ? schemaElem.value.trim() : "dbo";
+    const user = document.getElementById("sqlserver_user").value.trim();
     const password = document.getElementById("sqlserver_password").value;
 
     if (!host || !port || !database || !user) {
@@ -57,6 +59,6 @@ function validate_connection_sqlserver(callback) {
         return null;
     }
 
-    let connection = create_connection("sqlserver", host, port, database, null, user, password);
+    let connection = create_connection("sqlserver", host, port, database, schema, user, password);
     request_connection(connection, callback);
 }

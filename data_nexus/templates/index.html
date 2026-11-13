@@ -186,7 +186,7 @@
                     <select id="dbms" name="dbms" class="select_modal" onchange="changeDBMS()">
                         <option value="postgresql">PostgreSQL</option>
                         <option value="mysql">MySQL</option>
-                        <option value="sqlserver (under development)">SQLServer</option>
+                        <option value="sqlserver">SQLServer</option>
                       </select><br>
                     
                     <div id ="modal_content_postgres_host_port">
@@ -249,6 +249,9 @@
 
                 <label class="label_modal">Database:</label>
                 <input type="text" id="sqlserver_database" name="Database" value="" class="input_modal"><br>
+
+                <label class="label_modal">Schema:</label>
+                <input type="text" id="sqlserver_schema" name="Schema" value="dbo" class="input_modal"><br>
             
                 <label class="label_modal">User:</label>
                 <input type="text" id="sqlserver_user" name="User" value="" class="input_modal"><br>
