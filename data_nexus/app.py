@@ -30,17 +30,33 @@ if load != None:
 #t3 = load_database_json_file('202406-2021-1239-0ada48f3-c220-427c-876a-73eebd79efff.json')
 #generate_graph(t3)
 
+@app.before_request
+def handle_preflight():
+    if request.method == "OPTIONS":
+        response = app.make_default_options_response()
+        response.headers['Access-Control-Allow-Origin'] = '*'
+        response.headers['Access-Control-Allow-Headers'] = 'Content-Type,Authorization'
+        response.headers['Access-Control-Allow-Methods'] = 'GET,PUT,POST,DELETE,OPTIONS'
+        return response
+
+@app.after_request
+def add_cors_headers(response):
+    response.headers['Access-Control-Allow-Origin'] = '*'
+    response.headers['Access-Control-Allow-Headers'] = 'Content-Type,Authorization'
+    response.headers['Access-Control-Allow-Methods'] = 'GET,PUT,POST,DELETE,OPTIONS'
+    return response
+
 @app.route('/')
 def hello_world():
     return render_template('index.html')
 
 
-@app.route('/connections', methods=['POST'])
+@app.route('/connections', methods=['POST', 'OPTIONS'])
 def get_connections():
     global connections_buffer
 
-    if connections_buffer == None or not connections_buffer or len(connections_buffer) == 0:
-        return jsonify({'error': "No connections available"}), 400
+    if connections_buffer is None or not connections_buffer or len(connections_buffer) == 0:
+        return jsonify([]), 200
     
     try:
         connections = []
@@ -73,7 +89,7 @@ def get_connections():
         return jsonify({'error': str(e)}), 400
 
 
-@app.route('/tables', methods=['POST'])
+@app.route('/tables', methods=['POST', 'OPTIONS'])
 def get_tables():
     try:
         data = request.get_json()
@@ -89,7 +105,7 @@ def get_tables():
         return jsonify({'error': str(e)}), 400
 
 
-@app.route('/graph', methods=['POST'])
+@app.route('/graph', methods=['POST', 'OPTIONS'])
 def get_graph():
     try:
             data = request.get_json()
@@ -109,7 +125,7 @@ def get_graph():
     except Exception as e:
         return jsonify({'error': str(e)}), 400
     
-@app.route('/metadadata', methods=['POST'])
+@app.route('/metadadata', methods=['POST', 'OPTIONS'])
 def get_metadadata():
     try:
             data = request.get_json()
@@ -132,7 +148,7 @@ def get_metadadata():
 
 
 
-@app.route('/validate_connection', methods=['POST'])
+@app.route('/validate_connection', methods=['POST', 'OPTIONS'])
 def validate_connection():
     global connections_buffer
     try:

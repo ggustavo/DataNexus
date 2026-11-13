@@ -1,8 +1,8 @@
 const debug = false;
 
-const SERVER_HOST = "localhost"
-const SERVER_PORT = 5000;
-const URL = 'http://' + SERVER_HOST + ':' + SERVER_PORT;
+const URL = (typeof window !== 'undefined' && window.location && window.location.protocol.startsWith('http'))
+    ? window.location.origin
+    : 'http://localhost:5000';
 
 let headers = new Headers();
 headers.append("Content-Type", "application/json");
