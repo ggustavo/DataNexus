@@ -28,26 +28,22 @@ class TestSQLServerIntegration(unittest.TestCase):
         )
         self.sqlserver_conn = SQLServerConnection(self.credentials)
 
-    @patch("pymssql.connect")
-    def test_connection_create_and_close(self, mock_connect):
-        mock_conn = MagicMock()
-        mock_connect.return_value = mock_conn
+    @patch("data_nexus.database_connections.sqlserver_connection.create_engine")
+    def test_connection_create_and_close(self, mock_create_engine):
+        mock_engine = MagicMock()
+        mock_raw_conn = MagicMock()
+        mock_engine.raw_connection.return_value = mock_raw_conn
+        mock_create_engine.return_value = mock_engine
 
         self.sqlserver_conn.create()
-        mock_connect.assert_called_once_with(
-            server="127.0.0.1",
-            port=1433,
-            user="test_user",
-            password="fake_password",
-            database="test_db",
-            login_timeout=60,
-            timeout=60
-        )
-        self.assertEqual(self.sqlserver_conn.connection, mock_conn)
+        self.assertEqual(self.sqlserver_conn.connection, mock_raw_conn)
+        self.assertEqual(self.sqlserver_conn.engine, mock_engine)
 
         self.sqlserver_conn.close()
-        mock_conn.close.assert_called_once()
+        mock_raw_conn.close.assert_called_once()
+        mock_engine.dispose.assert_called_once()
         self.assertIsNone(self.sqlserver_conn.connection)
+        self.assertIsNone(self.sqlserver_conn.engine)
 
     def test_dict_list_to_connection_list(self):
         data = [
